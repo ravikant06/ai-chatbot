@@ -1,0 +1,71 @@
+# Spring Boot Configuration File
+# This YAML file configures how your Spring Boot application runs
+# YAML uses indentation (like Python) to show structure
+
+# Server configuration
+server:
+  port: 8081  # Port where Spring Boot runs (different from React's 5173)
+
+# Spring framework configuration
+spring:
+  application:
+    name: chatbot-service  # Application name (shows in logs, monitoring)
+  
+  # Use H2 in-memory database for testing (temporary)
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+# AWS configuration for Bedrock AI service
+aws:
+  region: ${AWS_REGION:us-east-1}  # AWS region where Bedrock is available
+  
+  # Bedrock-specific configuration
+  bedrock:
+    # Map of model names to their AWS identifiers
+    models:
+      claude-3-5-sonnet: anthropic.claude-3-5-sonnet-20241022-v2:0
+      claude-3-haiku: anthropic.claude-3-haiku-20240307-v1:0
+      cohere-command-r: cohere.command-r-v1:0
+      cohere-command-r-plus: cohere.command-r-plus-v1:0
+
+# Application monitoring and health checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics  # Which endpoints to expose
+  endpoint:
+    health:
+      show-details: always  # Show detailed health information
+
+# Logging configuration
+logging:
+  level:
+    com.chatbot: DEBUG      # Show debug logs for our application
+    org.springframework.web: INFO  # Show web request logs
+    org.springframework.data.mongodb: INFO  # Show MongoDB operation logs
+  
+  # Log pattern for console output
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# CORS (Cross-Origin Resource Sharing) configuration
+# Allows React frontend (port 5173) to call Spring Boot backend (port 8081)
+cors:
+  allowed-origins: 
+    - http://localhost:5173  # React development server
+    - http://localhost:3001  # Alternative React port from project plan
+  allowed-methods: 
+    - GET
+    - POST
+    - PUT
+    - DELETE
+  allowed-headers: "*"

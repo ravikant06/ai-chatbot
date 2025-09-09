@@ -1,0 +1,83 @@
+# Development Environment Configuration
+# This file extends application.yml with development-specific settings
+# 
+# Spring Profiles Explanation:
+# - Different environments need different configurations
+# - Development: Local database, debug logging, loose security
+# - Production: Cloud database, minimal logging, strict security
+# 
+# To use this profile: 
+# - Set environment variable: SPRING_PROFILES_ACTIVE=dev
+# - Or run with: java -jar app.jar --spring.profiles.active=dev
+# - Or in IDE: Set active profile to "dev"
+
+# Development-specific database configuration
+spring:
+  data:
+    mongodb:
+      # Local MongoDB connection (Docker container)
+      uri: mongodb://admin:password123@localhost:27017/chatbot?authSource=admin
+      
+      # Development-friendly settings
+      auto-index-creation: true           # Automatically create database indexes
+      
+# Development logging - more verbose for debugging
+logging:
+  level:
+    com.chatbot: DEBUG                    # Show all debug logs from our application
+    org.springframework.web: DEBUG       # Show HTTP request/response details
+    org.springframework.data.mongodb: DEBUG  # Show MongoDB queries and operations
+    org.springframework.security: INFO   # Security logs (when we add authentication)
+    
+  # Log to console with detailed format
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Development server settings
+server:
+  port: 8081
+  error:
+    include-stacktrace: always            # Show full error details (only for development!)
+    include-message: always               # Include error messages in responses
+
+# Management endpoints for development
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"                      # Expose ALL actuator endpoints for debugging
+  endpoint:
+    health:
+      show-details: always                # Show detailed health information
+    beans:
+      enabled: true                       # Show all Spring beans
+    env:
+      enabled: true                       # Show environment variables
+
+# CORS settings for development (allow all origins during development)
+cors:
+  allowed-origins:
+    - "http://localhost:5173"             # Vite dev server
+    - "http://localhost:3001"             # Alternative React port
+    - "http://localhost:3000"             # Create React App
+  allowed-methods:
+    - "*"                                 # Allow all HTTP methods
+  allowed-headers:
+    - "*"                                 # Allow all headers
+
+# AWS configuration for development
+aws:
+  region: us-east-1
+  # For development, uses AWS credentials from:
+  # 1. ~/.aws/credentials file
+  # 2. AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables
+  # 3. AWS CLI profile
+
+# DEVELOPMENT ENVIRONMENT VARIABLES:
+# Create a .env file in project root with:
+# 
+# SPRING_PROFILES_ACTIVE=dev
+# MONGODB_URI=mongodb://admin:password123@localhost:27017/chatbot?authSource=admin
+# AWS_ACCESS_KEY_ID=your_access_key
+# AWS_SECRET_ACCESS_KEY=your_secret_key
+# AWS_REGION=us-east-1

@@ -1,0 +1,104 @@
+# Docker Compose - Multi-container application setup
+# This file defines and runs multiple Docker containers together
+
+version: '3.8'
+
+# Services definition - each service runs in its own container
+services:
+  
+  # MongoDB database service
+  mongodb:
+    image: mongo:7                          # Use official MongoDB v7 image from Docker Hub
+    container_name: chatbot-mongodb         # Custom name for this container
+    restart: unless-stopped                 # Restart container if it crashes (except manual stop)
+    
+    # Port mapping: host_port:container_port
+    ports:
+      - "27017:27017"                       # MongoDB default port
+    
+    # Environment variables passed to MongoDB container
+    environment:
+      # Root admin user (for database administration)
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      
+      # Default database to create
+      MONGO_INITDB_DATABASE: chatbot
+    
+    # Volume mapping: host_directory:container_directory
+    # Data persistence - MongoDB data survives container restarts
+    volumes:
+      - mongodb_data:/data/db               # Store MongoDB data on host machine
+      - ./mongo-init:/docker-entrypoint-initdb.d  # Initialization scripts
+    
+    # Docker network for service communication
+    networks:
+      - chatbot-network
+
+  # MongoDB Admin UI (optional - for viewing data)
+  mongo-express:
+    image: mongo-express:latest             # Web-based MongoDB admin interface
+    container_name: chatbot-mongo-express
+    restart: unless-stopped
+    
+    ports:
+      - "8082:8081"                         # Access at http://localhost:8082
+    
+    environment:
+      # Connect to our MongoDB container
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password123
+      ME_CONFIG_MONGODB_SERVER: mongodb    # Service name (Docker internal DNS)
+      ME_CONFIG_MONGODB_PORT: 27017
+      
+      # Basic auth for web interface
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin123
+    
+    # Wait for MongoDB to start before starting mongo-express
+    depends_on:
+      - mongodb
+    
+    networks:
+      - chatbot-network
+
+# Named volumes for data persistence
+volumes:
+  mongodb_data:
+    # Docker manages this volume
+    # Data persists even if containers are removed
+    driver: local
+
+# Networks for container communication
+networks:
+  chatbot-network:
+    driver: bridge
+    # Containers in same network can communicate using service names
+    # e.g., Spring Boot can connect to "mongodb:27017"
+
+# HOW TO USE THIS FILE:
+# 
+# Start services:
+# docker-compose up -d
+# 
+# Stop services:
+# docker-compose down
+# 
+# View logs:
+# docker-compose logs mongodb
+# 
+# Remove everything (including data):
+# docker-compose down -v
+
+# WHAT HAPPENS WHEN YOU RUN "docker-compose up":
+# 
+# 1. Docker creates network "chatbot-network"
+# 2. Docker creates volume "mongodb_data" 
+# 3. Docker pulls mongo:7 image (if not already downloaded)
+# 4. Docker starts MongoDB container with environment variables
+# 5. MongoDB initializes with admin user and "chatbot" database
+# 6. Docker starts mongo-express container
+# 7. mongo-express connects to MongoDB container
+# 8. Services are ready to use:
+#    - MongoDB: localhost:27017
+#    - Mongo Express UI: localhost:8082

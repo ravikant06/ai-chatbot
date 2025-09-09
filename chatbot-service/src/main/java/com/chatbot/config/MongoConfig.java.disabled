@@ -1,0 +1,172 @@
+package com.chatbot.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
+import org.springframework.beans.factory.annotation.Value;
+
+/**
+ * MongoDB Configuration - Database Connection Setup
+ * 
+ * Configuration Class Explanation:
+ * - Extends AbstractMongoClientConfiguration to customize MongoDB setup
+ * - @EnableMongoRepositories tells Spring to scan for Repository interfaces
+ * - Spring will automatically implement Repository methods at startup
+ * 
+ * Why do we need this configuration?
+ * - Spring Boot auto-configuration works for simple cases
+ * - This gives us more control over connection settings
+ * - Allows custom database name, connection options, etc.
+ * 
+ * Database Connection Process:
+ * 1. Spring reads application.yml for connection string
+ * 2. This configuration class processes the settings
+ * 3. Spring creates MongoDB client and connection pool
+ * 4. Repositories become available for dependency injection
+ */
+@Configuration
+@EnableMongoRepositories(basePackages = "com.chatbot.repository")
+public class MongoConfig extends AbstractMongoClientConfiguration {
+
+    /**
+     * Database name from configuration
+     * 
+     * @Value reads from application.yml: spring.data.mongodb.database
+     * If not found, uses "chatbot" as default
+     * 
+     * This is extracted from the MongoDB URI in application.yml
+     * URI format: mongodb://host:port/DATABASE_NAME
+     */
+    @Value("${spring.data.mongodb.database:chatbot}")
+    private String databaseName;
+
+    /**
+     * MongoDB connection URI from configuration
+     * 
+     * Full connection string including:
+     * - Host and port (localhost:27017)
+     * - Database name (chatbot)
+     * - Authentication (if required)
+     * - Connection options (connection pool size, timeouts, etc.)
+     */
+    @Value("${spring.data.mongodb.uri:mongodb://localhost:27017/chatbot}")
+    private String mongoUri;
+
+    /**
+     * Provide database name to Spring Data MongoDB
+     * 
+     * Abstract method from AbstractMongoClientConfiguration
+     * Spring calls this method to know which database to use
+     * 
+     * @return String name of MongoDB database
+     */
+    @Override
+    protected String getDatabaseName() {
+        return databaseName;
+        
+        /*
+         * LAMBDA EQUIVALENT:
+         * 
+         * Supplier<String> databaseNameSupplier = () -> databaseName;
+         * return databaseNameSupplier.get();
+         * 
+         * But direct return is simpler for single value
+         */
+    }
+
+    /*
+     * CONNECTION LIFECYCLE EXPLANATION:
+     * 
+     * Application Startup:
+     * 1. Spring reads application.yml configuration
+     * 2. MongoConfig class processes the configuration  
+     * 3. Spring creates MongoClient with connection pool
+     * 4. Connection pool opens connections to MongoDB
+     * 5. Repositories are ready to use
+     * 
+     * During Application Run:
+     * 1. Repository method called (e.g., messageRepository.save())
+     * 2. Spring gets connection from pool
+     * 3. Executes MongoDB operation
+     * 4. Returns connection to pool
+     * 5. Returns result to your code
+     * 
+     * Application Shutdown:
+     * 1. Spring closes all database connections
+     * 2. Connection pool is destroyed
+     * 3. MongoDB client is shut down
+     * 
+     * CONNECTION POOL BENEFITS:
+     * - Reuses connections (faster than creating new ones)
+     * - Limits concurrent connections (prevents database overload)
+     * - Handles connection failures and retries
+     * - Thread-safe (multiple requests can use different connections)
+     */
+
+    /*
+     * MANUAL CONNECTION (what Spring does automatically):
+     * 
+     * If you were connecting to MongoDB manually (without Spring):
+     * 
+     * // Create client
+     * MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
+     * 
+     * // Get database
+     * MongoDatabase database = mongoClient.getDatabase("chatbot");
+     * 
+     * // Get collection
+     * MongoCollection<Document> collection = database.getCollection("messages");
+     * 
+     * // Insert document
+     * Document message = new Document("content", "Hello")
+     *     .append("role", "user")
+     *     .append("timestamp", new Date());
+     * collection.insertOne(message);
+     * 
+     * // Query documents
+     * FindIterable<Document> messages = collection.find();
+     * for (Document doc : messages) {
+     *     System.out.println(doc.toJson());
+     * }
+     * 
+     * // Close connection
+     * mongoClient.close();
+     * 
+     * SPRING DATA MONGODB EQUIVALENT:
+     * 
+     * // Just use repository!
+     * Message message = new Message("conv123", "user", "Hello", null);
+     * messageRepository.save(message);  // Spring handles connection, conversion, etc.
+     * 
+     * List<Message> messages = messageRepository.findAll();  // Spring handles query
+     * 
+     * Spring eliminates 90% of the boilerplate database code!
+     */
+
+    /*
+     * MONGODB CONCEPTS FOR BEGINNERS:
+     * 
+     * SQL Database (like MySQL):        MongoDB (NoSQL):
+     * - Tables                          - Collections  
+     * - Rows                            - Documents
+     * - Columns                         - Fields
+     * - Primary Key                     - _id field
+     * - Foreign Key                     - References
+     * - JOIN queries                    - Embedded documents or lookups
+     * 
+     * Example:
+     * SQL Table "messages":             MongoDB Collection "messages":
+     * +----+-------+---------+          {
+     * | id | role  | content |            "_id": "abc123",
+     * +----+-------+---------+            "role": "user", 
+     * | 1  | user  | Hello   |            "content": "Hello",
+     * | 2  | bot   | Hi!     |            "timestamp": "2024-01-01T10:00:00"
+     * +----+-------+---------+          }
+     * 
+     * MongoDB Benefits:
+     * - Flexible schema (can add fields anytime)
+     * - JSON-like documents (matches frontend data structure)
+     * - No complex table relationships to manage
+     * - Easy to scale horizontally
+     */
+}
